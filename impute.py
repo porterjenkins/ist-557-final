@@ -8,35 +8,38 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 class Imputer():
 
-    def __init__(self,n_neighbors=5,imputation_method='k-nn'):
+    def __init__(self,n_neighbors=5,imputation_method='k-nn',print = True,categorical_vars = None):
         self.n_neighbors = n_neighbors
         self.imputation_method = imputation_method
+        self.print = print
+        self.categorical_vars = categorical_vars
+
+
+    def isDataframe(self,X):
+        if isinstance(X,DataFrame):
+            pass
+        else:
+            raise Exception("Imputer is currently only able to process pandas DataFrame. Please reformat.")
 
 
     def getNullSamples(self,X):
-        print("--Features w/ Null Values (%)--")
-        pct_null = X.isnull().sum() / float(len(X))
-        print(pct_null[pct_null > 0])
-        print("--------------------------------")
+        if self.print:
+            print("--Features w/ Null Values (%)--")
+            pct_null = X.isnull().sum() / float(len(X))
+            print(pct_null[pct_null > 0])
+            print("--------------------------------")
         rows_with_null = X[X.isnull().any(axis=1)]
 
         return rows_with_null
 
-    def encodeCategoricalVars(self,X):
-        X_clean = X.copy()
-        if isinstance(X,Series):
-            X_clean = X_clean.to_frame()
-        encode_string = LabelEncoder()
-        non_numeric_cols = list(X_clean.select_dtypes(include=[object]).columns)
-
-
-        for col in non_numeric_cols:
-            col_encoded = encode_string.fit_transform(X_clean[col])
-            X_clean[col] = col_encoded
-
-        return X_clean
 
     def fit_transform(self,X):
+
+        # Check format of input data
+        self.isDataframe(X)
+
+        # Check for categorical variables
+
         rows_with_null = self.getNullSamples(X)
         null_indices = list(rows_with_null.index)
         for null_row_idx_i in null_indices:
@@ -44,7 +47,6 @@ class Imputer():
             tmp_row = rows_with_null.ix[null_row_idx_i]
             null_cols = list(tmp_row[tmp_row.isnull()].index)
 
-            print(tmp_row)
 
             for i in range(len(null_cols)):
                 null_cols_to_remove = null_cols[:]
@@ -52,8 +54,6 @@ class Imputer():
                 y_name = null_cols[i]
                 y_dtype = X.dtypes[y_name]
 
-                print("y: ", y_name)
-                print('drop: ', null_cols_to_remove)
 
                 test_row = tmp_row.drop(labels=null_cols,axis=0)
 
@@ -68,12 +68,12 @@ class Imputer():
 
 
 
-                if y_dtype == np.float:
-                    nn = KNeighborsRegressor()
-                else:
-                    string_to_int = LabelEncoder()
-                    impute_train_y = string_to_int.fit_transform(impute_train_y)
+                if y_name in self.categorical_vars:
                     nn = KNeighborsClassifier()
+                    print("%s - classifier..." % y_name)
+                else:
+                    nn = KNeighborsRegressor()
+                    print("%s - regressor..." % y_name)
 
 
                 # convert data to numpy array for prediction
