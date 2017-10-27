@@ -31,7 +31,7 @@ df_pivot_clean = []
 # iterate over gender df's
 for df in gender_df_list:
     # Pivot operation: Transform age_bucket rows into colums
-    df_pivot = df.pivot(index = 'country_destination', columns = 'age_bucket',values='population_in_thousands')
+    df_pivot = df.pivot(index = 'age_bucket', columns =  'country_destination',values='population_in_thousands')
     df_cols = df_pivot.columns
     # Rename columns to include gender prefix
     df_cols_gender = [df.name + "_" + x for x in df_cols]
