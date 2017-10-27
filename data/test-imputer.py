@@ -11,8 +11,8 @@ train.columns = ['x1','x2','x3','x4']
 train['x5'] = np.random.randint(low=0,high=4,size = len(train))
 
 null_row_idx = list(np.random.randint(low=0,high=train.shape[0], size=10))
-#null_cols_idx = list(np.random.randint(low=0,high=2, size=10))
-null_cols_idx = [0,1,4]
+
+null_cols_idx = [0,1,5]
 
 
 null_data_true = train.iloc[null_row_idx,null_cols_idx].values
