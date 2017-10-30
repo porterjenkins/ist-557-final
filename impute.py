@@ -123,8 +123,6 @@ class Imputer():
                     nn = KNeighborsClassifier()
                 else:
                     nn = KNeighborsRegressor()
-                print('Size of X: ', len(impute_train_X))
-
                 # convert data to numpy array for prediction
                 impute_train_X_arr = impute_train_X.values
                 impute_train_y_arr = impute_train_y.values
