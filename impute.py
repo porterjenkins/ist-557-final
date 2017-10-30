@@ -8,7 +8,6 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 class Imputer():
 
-
     def __init__(self,n_neighbors=5,
                  imputation_method='k-nn',
                  print = True,
@@ -31,14 +30,15 @@ class Imputer():
         else:
             raise Exception("Imputer is currently only able to process pandas DataFrames. Please reformat.")
 
-
-    def getNullSamples(self,X):
-        """ Find row in matrix that contain ANY column with a null value"""
+    def printNullStatistics(self,X):
         if self.print:
             print("--Features w/ Null Values (%)--")
             pct_null = X.isnull().sum() / float(len(X))
             print(pct_null[pct_null > 0])
             print("--------------------------------")
+
+    def getNullSamples(self,X):
+        """ Find row in matrix that contain ANY column with a null value"""
         rows_with_null = X[X.isnull().any(axis=1)]
 
         return rows_with_null
@@ -68,6 +68,19 @@ class Imputer():
 
         return X_sample, y_sample
 
+    def hasCategoricalVars(self):
+        """
+        Test if categorical variables are passed to constructor. If valid, non-empty list is passed, return True,
+        o/w return false
+        :return: Boolean
+        """
+
+        if isinstance(self.categorical_vars,list):
+            return True
+        else:
+            return False
+
+
 
     def fit_transform(self,X):
         """
@@ -78,9 +91,13 @@ class Imputer():
 
         # Check format of input data
         self.isDataframe(X)
+        X_out = X.copy()
+
+        # Print Null stats to Screen:
+        self.printNullStatistics(X)
 
         # Get all rows with where any column (any j) is null
-        rows_with_null = self.getNullSamples(X)
+        rows_with_null = self.getNullSamples(X_out)
         null_indices = list(rows_with_null.index)
         for null_row_idx_i in null_indices:
             # Iterate over all samples with null values
@@ -119,7 +136,9 @@ class Imputer():
                 # Model choice conditional on type of feature:
                 # e.g., when the target is categorical, learn classifier,
                 # when target is real-valued, learn regressor
-                if y_name in self.categorical_vars:
+                # Boolean to test if cat. variables were passed to constructor
+                has_categorical_vars = self.hasCategoricalVars()
+                if has_categorical_vars and y_name in self.categorical_vars:
                     nn = KNeighborsClassifier()
                 else:
                     nn = KNeighborsRegressor()
@@ -134,9 +153,71 @@ class Imputer():
                 # fill  row i, feature j with predicted value
                 tmp_row[y_name] = row_y_hat
             # replace original row, i, with new row contaning imputed values
-            X.ix[null_row_idx_i] = tmp_row
+            X_out.ix[null_row_idx_i] = tmp_row
 
-        return X
+        return X_out
+
+
+class SampleBagger(Imputer):
+
+    def __init__(self,impute_missing_vals=True,
+                 ratio_dense_sparce=(2,1),
+                 n_neighbors=5,
+                 imputation_method='k-nn',
+                 print=True,
+                 categorical_vars=None,
+                 minibatch=False,
+                 minibatch_size=.1
+                 ):
+        super().__init__(n_neighbors=n_neighbors,
+                 imputation_method=imputation_method,
+                 print = print,
+                 categorical_vars = categorical_vars,
+                 minibatch=minibatch,
+                 minibatch_size = minibatch_size)
+        self.ratio_dense_sparce = ratio_dense_sparce
+        self.impute_missing_vals = impute_missing_vals
+
+    def getSampleWeights(self):
+        return self.ratio_dense_sparce[0], self.ratio_dense_sparce[1]
+
+    def printNullStatistics(self,X):
+        if self.print:
+            print("--Bootstrapped Data: Features w/ Null Values (%)--")
+            pct_null = X.isnull().sum() / float(len(X))
+            print(pct_null[pct_null > 0])
+            print("--------------------------------")
+
+    def genSample(self,X):
+        self.isDataframe(X)
+        n_rows = X.shape[0]
+        dense_sample_weight, sparce_sample_weight = self.getSampleWeights()
+
+        all_rows_index = X.index
+        # get indices of rows with at least one null value
+        rows_with_null = self.getNullSamples(X)
+        null_rows_idx = list(rows_with_null.index)
+
+        sample_probs = np.ones(n_rows)
+        sparce_sample_mask = np.zeros(n_rows,dtype=bool)
+        sparce_sample_mask[null_rows_idx] = True
+        sample_probs[sparce_sample_mask] *= sparce_sample_weight
+        sample_probs[~sparce_sample_mask] *= dense_sample_weight
+        sample_probs = sample_probs / np.sum(sample_probs)
+
+        sample_rows = np.random.choice(all_rows_index,
+                                       size=n_rows,
+                                       replace=True,
+                                       p=sample_probs)
+        X_sample = X.ix[sample_rows]
+        if self.impute_missing_vals:
+            print("-----Beginning Imputation Algorithm: %s-----" % self.imputation_method)
+            X_out = self.fit_transform(X=X_sample)
+        else:
+            X_out = X_sample.copy()
+
+        return X_out
+
 
 
 
