@@ -16,7 +16,6 @@ null_cols_idx = [0,1,4]
 
 
 null_data_true = train.iloc[null_row_idx,null_cols_idx].values
-print(null_data_true)
 
 train.iloc[null_row_idx,null_cols_idx] = np.nan
 
@@ -25,7 +24,7 @@ null_vals_pct = train.isnull().sum() / float(len(train))
 
 impute = Imputer(categorical_vars=['x5'])
 iris_clean = impute.fit_transform(train)
-print("Null values after imputation?")
+print("Null values after imputation")
 print(iris_clean.isnull().sum()/len(iris_clean))
 
 null_data_predicted = iris_clean.iloc[null_row_idx,null_cols_idx].values
@@ -36,8 +35,11 @@ print("Prediction error of imputation: ", mae)
 
 ## Test Bagging features
 
-bag = SampleBagger(ratio_dense_sparce=(2,1),impute_missing_vals=True,categorical_vars=['x5'])
+bag = SampleBagger(ratio_dense_sparce=(5,1),impute_missing_vals=True,categorical_vars=['x5'],print=True)
 train_bag = bag.genSample(train)
 
 
 print(train_bag.head())
+null_vals_pct = train_bag.isnull().sum() / float(len(train_bag))
+print("Null values after bagging and imputation")
+print(null_vals_pct)

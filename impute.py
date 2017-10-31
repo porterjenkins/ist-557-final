@@ -189,8 +189,18 @@ class SampleBagger(Imputer):
             print("--------------------------------")
 
     def genSample(self,X):
+        """
+        Generate boostrapped sampled of input data (X: DataFrame)
+        Sampling scheme uses weight ratio passed to constructor (ratio_dense_sparce) to sample data
+        After sample is complete, if impute_missing_vals = True, then impute missing values on resulting boostrapped
+        data
+        :param X: Input data matrix (DataFrame)
+        :return: Boostrapped DataFrame with missing values imputed (if impute_missing_vals = True)
+        """
+        # Test type of X. Return error if not a DataFrame
         self.isDataframe(X)
         n_rows = X.shape[0]
+        # Retrieve sample weights for dense and sparse samples
         dense_sample_weight, sparce_sample_weight = self.getSampleWeights()
 
         all_rows_index = X.index
@@ -198,20 +208,29 @@ class SampleBagger(Imputer):
         rows_with_null = self.getNullSamples(X)
         null_rows_idx = list(rows_with_null.index)
 
+        # Initialize sample probability vector
         sample_probs = np.ones(n_rows)
+        # Create mask for dense and sparse samples
         sparce_sample_mask = np.zeros(n_rows,dtype=bool)
         sparce_sample_mask[null_rows_idx] = True
+        # multiply dense and sparse samples by respective weights
         sample_probs[sparce_sample_mask] *= sparce_sample_weight
         sample_probs[~sparce_sample_mask] *= dense_sample_weight
+        # Normalize weights to sum to one
         sample_probs = sample_probs / np.sum(sample_probs)
-
+        # Sample row indices with replacement using sample probability weights from above
         sample_rows = np.random.choice(all_rows_index,
                                        size=n_rows,
                                        replace=True,
                                        p=sample_probs)
+        # Create new DataFrame using sampled row indices
         X_sample = X.ix[sample_rows]
+        # Reset index of sampled data. easier to work with in the imputation routine
+        X_sample.reset_index(drop=True,inplace=True)
+
         if self.impute_missing_vals:
             print("-----Beginning Imputation Algorithm: %s-----" % self.imputation_method)
+            # Impute misisng values using method from Imputer class
             X_out = self.fit_transform(X=X_sample)
         else:
             X_out = X_sample.copy()
