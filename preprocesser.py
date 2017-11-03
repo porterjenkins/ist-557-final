@@ -145,13 +145,13 @@ class Preprocesser:
 
         pass
 
-    def transform_log(self, log_data):
+    def transform_log(self, sessions):
         """
         Preprocessing function for LOG data
         :param log_data: log data (DataFrame)
         :return: transformed l0g data (DataFrame)
         """
-        if isinstance(train,DataFrame):
+        if isinstance(sessions,DataFrame):
             pass
         else:
             raise Exception("X must be a pandas DataFrame")
@@ -166,39 +166,41 @@ class Preprocesser:
         total_sec = sessions.groupby('user_id')[['secs_elapsed']].sum()
 
         #creating data set of new features that I will continually add to.
-        new_features = pandas.concat([row_count, total_sec], axis=1)
+        new_features = pd.concat([row_count, total_sec], axis=1)
 
         #average seconds elapsed per user.
         avg_sec = sessions.groupby('user_id')[['secs_elapsed']].mean()
 
         #adding feature to new_features.
-        new_features = pandas.concat([new_features, avg_sec], axis=1)
+        new_features = pd.concat([new_features, avg_sec], axis=1)
 
         #rename columns so there isn't any overlap.
         new_features.columns.values[5] = 'total_secs'
         new_features.columns.values[6] = 'avg_secs'
 
         #frequency of action by user.
-        action_freq = pandas.DataFrame({'action_count' : sessions.groupby( ["user_id", "action"] ).size()}).reset_index()
+        action_freq = pd.DataFrame({'action_count' : sessions.groupby( ["user_id", "action"] ).size()}).reset_index()
 
         #change action_freq from long to wide.
         action_wide = action_freq.pivot(index = 'user_id', columns = 'action', values = 'action_count')
 
         #add action type info to new_features data set.
-        new_features = pandas.concat([new_features, action_wide], axis=1)
+        new_features = pd.concat([new_features, action_wide], axis=1)
 
         #frequency of action detail by user.
-        action_detail_freq = pandas.DataFrame({'action_detail_count' : sessions.groupby( ["user_id", "action_detail"] ).size()}).reset_index()
+        action_detail_freq = pd.DataFrame({'action_detail_count' : sessions.groupby( ["user_id", "action_detail"] ).size()}).reset_index()
 
         #change action_detail_freq from long to wide.
         action_detail_wide = action_detail_freq.pivot(index = 'user_id', columns = 'action_detail', values = 'action_detail_count')
 
         #add action type info to new_features data set
-        new_features = pandas.concat([new_features, action_detail_wide], axis=1)
+        new_features = pd.concat([new_features, action_detail_wide], axis=1)
 
         #fill all NAs in new_features with zeros (since all features are frequencies)
         new_features1 = new_features.fillna(0)
-        print(new_features1)
+        #print(new_features1)
+        return new_features1
+
 
 
 
