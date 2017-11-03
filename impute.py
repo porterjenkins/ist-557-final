@@ -80,8 +80,14 @@ class Imputer():
             return False
 
     def getFreqValues(self,X,cat_var_idx):
+        """
+        Get 'typical' values for each feature. Used to fill in missing values with making intelligent imputation
+        Use mean for numerical types, mode for non-numeric types
+        :param X: Matrix (np.ndarray)
+        :param cat_var_idx: list of categorical variables
+        :return: dictionary of feature indices and their corresponding values
+        """
         col_idx = range(X.shape[1])
-        #num_var_idx = list(set(col_idx) - set(cat_var_idx))
         freq_vals = {}
 
         for i in col_idx:
@@ -94,6 +100,12 @@ class Imputer():
         return freq_vals
 
     def getCategoricalIdx(self,X):
+        """
+        Get column index for each categorical variable
+        :param X: np.ndarray
+        :return: list
+        """
+
         if isinstance(X,DataFrame):
             columns = X.columns
             column_idx = range(X.shape[1])
@@ -110,43 +122,63 @@ class Imputer():
 
 
     def impute(self,X):
-
+        """
+        Perform imputation routine.
+        1) First find all columns with missing values
+        2) Iterate over columns with missing values
+            a) train classifier/regressor on training data, where training data is subset of data with NO missing vals
+            b) Predict onto data with missing value at given column.
+                - If other columns are missing, fill in with typical values for prediction ONLY (mean or mode)
+        :param X: DataFrame or np.ndarray
+        :return: np.ndarray
+        """
+        # Test type. Allow only DataFrame or np.ndarray
         self.isDataframe(X)
+        # Boolean test for if categorical variables were provided to constructor
         has_categorical_vars = self.hasCategoricalVars()
 
+        # Get list of categorical variables. Empty list if none were provided
         if has_categorical_vars:
             cat_vars = self.getCategoricalIdx(X)
         else:
             cat_vars = []
 
-        X_out = X.values
+        if isinstance(X,DataFrame):
+            # If X is a dataframe convert to np.ndarray for speed
+            X_out = X.values
 
         n_cols = float(X_out.shape[1])
 
         # Find columns with null values
         X_is_null = np.isnan(X_out)
         X_not_null = ~X_is_null
+        # Find rows with NO missing values
         rows_complete_idx = np.where((np.sum(X_not_null,axis=1) / n_cols) == 1.0 )[0]
+        # Save matrix of complete data
         X_complete = X_out[rows_complete_idx]
-
+        # Get typical values (mean/mode) for predictions
         fill_test_na = self.getFreqValues(X_out,cat_var_idx=cat_vars)
 
+        # Get list of columns with at least one null value
         cols_null_cnt = np.sum(X_is_null,axis=0)
         null_col_idx = np.where(cols_null_cnt > 0)[0]
         for col in null_col_idx:
+            # Construct training data out of complete X matrix
             impute_train_y = X_complete[:,col]
             impute_train_x = np.delete(X_complete,obj=col,axis=1)
 
+            # Construct test data. Data that is missing the ith column (col)
             test_x_idx = np.where(X_is_null[:,col])[0]
             impute_test_x = X_out[test_x_idx,:]
 
-
+            # If a row is missing col, and other columns, these additional columns will be temporarily filled
+            # with the frequent value (mean/mode) for prediction only
             null_cols_to_fill = list(null_col_idx[:])
             col_to_del = np.where(null_cols_to_fill == col)[0][0]
             null_cols_to_fill.pop(col_to_del)
 
             for j in null_cols_to_fill:
-
+                # iterate over 'other' missing columns and fill
                 impute_test_x[:,j] = np.where(np.isnan(impute_test_x[:,j]),
                                               fill_test_na[j],
                                               impute_test_x[:, j])
