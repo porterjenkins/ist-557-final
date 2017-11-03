@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from pandas import DataFrame, Series
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from scipy.stats import mode
 
 
 
@@ -25,7 +25,7 @@ class Imputer():
 
     def isDataframe(self,X):
         """Make sure data passed to methods is a pandas DataFrame"""
-        if isinstance(X,DataFrame):
+        if isinstance(X,DataFrame) | isinstance(X,np.ndarray) :
             pass
         else:
             raise Exception("Imputer is currently only able to process pandas DataFrames. Please reformat.")
@@ -40,7 +40,6 @@ class Imputer():
     def getNullSamples(self,X):
         """ Find row in matrix that contain ANY column with a null value"""
         rows_with_null = X[X.isnull().any(axis=1)]
-
         return rows_with_null
 
     def getRandomBatch(self,X,y):
@@ -80,83 +79,92 @@ class Imputer():
         else:
             return False
 
+    def getFreqValues(self,X,cat_var_idx):
+        col_idx = range(X.shape[1])
+        #num_var_idx = list(set(col_idx) - set(cat_var_idx))
+        freq_vals = {}
+
+        for i in col_idx:
+            if i in cat_var_idx:
+                freq_vals[i] = mode((X[:, i]), nan_policy='omit')[0][0]
+            else:
+                freq_vals[i] = np.nanmean(X[:,i])
 
 
-    def fit_transform(self,X):
-        """
-        Impute all missing value of input data. Use classification or regression (depending on feature type)
-        :param X: Input matrix (dataframe only)
-        :return: Transformed version of X. All null values filled
-        """
+        return freq_vals
 
-        # Check format of input data
+    def getCategoricalIdx(self,X):
+        if isinstance(X,DataFrame):
+            columns = X.columns
+            column_idx = range(X.shape[1])
+            column_dict = dict(zip(columns,column_idx))
+
+            cat_vars = []
+            for i in self.categorical_vars:
+                cat_vars.append(column_dict[i])
+        else:
+            cat_vars = self.categorical_vars
+
+        return cat_vars
+
+
+
+    def impute(self,X):
+
         self.isDataframe(X)
-        X_out = X.copy()
+        has_categorical_vars = self.hasCategoricalVars()
 
-        # Print Null stats to Screen:
-        self.printNullStatistics(X)
+        if has_categorical_vars:
+            cat_vars = self.getCategoricalIdx(X)
+        else:
+            cat_vars = []
 
-        # Get all rows with where any column (any j) is null
-        rows_with_null = self.getNullSamples(X_out)
-        null_indices = list(rows_with_null.index)
-        for null_row_idx_i in null_indices:
-            # Iterate over all samples with null values
-            # We will fit a new model for each row (expensive!)
-            tmp_row = rows_with_null.ix[null_row_idx_i]
-            null_cols = list(tmp_row[tmp_row.isnull()].index)
+        X_out = X.values
+
+        n_cols = float(X_out.shape[1])
+
+        # Find columns with null values
+        X_is_null = np.isnan(X_out)
+        X_not_null = ~X_is_null
+        rows_complete_idx = np.where((np.sum(X_not_null,axis=1) / n_cols) == 1.0 )[0]
+        X_complete = X_out[rows_complete_idx]
+
+        fill_test_na = self.getFreqValues(X_out,cat_var_idx=cat_vars)
+
+        cols_null_cnt = np.sum(X_is_null,axis=0)
+        null_col_idx = np.where(cols_null_cnt > 0)[0]
+        for col in null_col_idx:
+            impute_train_y = X_complete[:,col]
+            impute_train_x = np.delete(X_complete,obj=col,axis=1)
+
+            test_x_idx = np.where(X_is_null[:,col])[0]
+            impute_test_x = X_out[test_x_idx,:]
 
 
-            for i in range(len(null_cols)):
-                # Iterate over null features
-                # At each iteration, set target feature to impute with by model
-                null_cols_to_remove = null_cols[:]
-                null_cols_to_remove.pop(i)
-                # Save column name
-                y_name = null_cols[i]
-                # Row to impute --> Test data
-                test_row = tmp_row.drop(labels=null_cols,axis=0)
-                # remove row to impute from training data
-                full_col_train = X.drop(labels=null_row_idx_i,axis=0)
-                # Collect training data. All other rows with complete data for feature to impute
-                full_col_train = full_col_train[full_col_train[y_name].isnull() == False]
-                # Drop any other features where data in row to impute is missing
-                # This allows us to learn a model
-                full_col_train.drop(labels = null_cols_to_remove, axis = 1,inplace=True)
-                # Remove any additional missing data
-                full_col_train.dropna(inplace=True)
+            null_cols_to_fill = list(null_col_idx[:])
+            col_to_del = np.where(null_cols_to_fill == col)[0][0]
+            null_cols_to_fill.pop(col_to_del)
 
-                # Create training X and y to impute missing data
-                impute_train_y = full_col_train[y_name]
-                impute_train_X = full_col_train.drop(labels = y_name,axis=1)
+            for j in null_cols_to_fill:
 
-                # Sample minibatch to reduce computational cost
-                if self.minibatch:
-                    impute_train_X, impute_train_y = self.getRandomBatch(X=impute_train_X,y=impute_train_y)
+                impute_test_x[:,j] = np.where(np.isnan(impute_test_x[:,j]),
+                                              fill_test_na[j],
+                                              impute_test_x[:, j])
 
-                # Model choice conditional on type of feature:
-                # e.g., when the target is categorical, learn classifier,
-                # when target is real-valued, learn regressor
-                # Boolean to test if cat. variables were passed to constructor
-                has_categorical_vars = self.hasCategoricalVars()
-                if has_categorical_vars and y_name in self.categorical_vars:
-                    nn = KNeighborsClassifier()
-                else:
-                    nn = KNeighborsRegressor()
-                # convert data to numpy array for prediction
-                impute_train_X_arr = impute_train_X.values
-                impute_train_y_arr = impute_train_y.values
-                test_row_arr = np.transpose(test_row.values.reshape(-1,1))
+            # create k-nn object
+            if (has_categorical_vars) & (col in cat_vars):
+                nn = KNeighborsClassifier(n_neighbors=self.n_neighbors)
+            else:
+                nn = KNeighborsRegressor(n_neighbors=self.n_neighbors)
 
-                # Make prediction using test data (row to impute)
-                nn.fit(X=impute_train_X_arr,y=impute_train_y_arr)
-                row_y_hat = nn.predict(test_row_arr)[0]
-                # fill  row i, feature j with predicted value
-                tmp_row[y_name] = row_y_hat
-            # replace original row, i, with new row contaning imputed values
-            X_out.ix[null_row_idx_i] = tmp_row
+            # Make prediction using test data (row to impute)
+            nn.fit(X=impute_train_x, y=impute_train_y)
+            impute_test_x = np.delete(impute_test_x, obj=col, axis=1)
+            row_y_hat = nn.predict(impute_test_x)
+            # fill  row i, feature j with predicted value
+            X_out[test_x_idx,col] = row_y_hat
 
         return X_out
-
 
 class SampleBagger(Imputer):
 
@@ -180,6 +188,12 @@ class SampleBagger(Imputer):
 
     def getSampleWeights(self):
         return self.ratio_dense_sparce[0], self.ratio_dense_sparce[1]
+
+    def getNullRowInt(self,X):
+        null_rows_all = np.where(X.isnull())
+        null_rows_int_idx = null_rows_all[0]
+        return null_rows_int_idx
+
 
     def printNullStatistics(self,X):
         if self.print:
@@ -205,8 +219,7 @@ class SampleBagger(Imputer):
 
         all_rows_index = X.index
         # get indices of rows with at least one null value
-        rows_with_null = self.getNullSamples(X)
-        null_rows_idx = list(rows_with_null.index)
+        null_rows_idx = self.getNullRowInt(X)
 
         # Initialize sample probability vector
         sample_probs = np.ones(n_rows)
@@ -225,15 +238,23 @@ class SampleBagger(Imputer):
                                        p=sample_probs)
         # Create new DataFrame using sampled row indices
         X_sample = X.ix[sample_rows]
-        # Reset index of sampled data. easier to work with in the imputation routine
-        X_sample.reset_index(drop=True,inplace=True)
+
+
 
         if self.impute_missing_vals:
+            X_sample_index = np.array(X_sample.index).reshape(-1,1)
+
+            X_sample.reset_index(drop=True, inplace=True)
+
             print("-----Beginning Imputation Algorithm: %s-----" % self.imputation_method)
             # Impute misisng values using method from Imputer class
-            X_out = self.fit_transform(X=X_sample)
+            X_impute = self.impute(X=X_sample)
+            # Reset index of sampled data. easier to work with in the imputation routine
+            #X_out.index = X_sample_index
+            X_out = np.concatenate((X_sample_index,X_impute),axis=1)
         else:
             X_out = X_sample.copy()
+
 
         return X_out
 
