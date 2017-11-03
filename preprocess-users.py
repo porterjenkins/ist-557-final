@@ -14,6 +14,7 @@ test.set_index('id',inplace=True)
 train_preprocesser = Preprocesser(bagging=True)
 train_clean = train_preprocesser.transform(train)
 
+
 test_preprocesser = Preprocesser(bagging=False)
 test_clean = test_preprocesser.transform(test)
 
