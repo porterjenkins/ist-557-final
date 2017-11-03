@@ -134,3 +134,26 @@ class Preprocesser:
         null_vals_pct = train_out.isnull().sum() / float(len(train_out))
         print("Null values after imputation")
         print(null_vals_pct)
+
+
+    def transform_gender(self,gender_data):
+        """
+        Preprocessing function for gender data
+        :param gender_data: gender data (DataFrame)
+        :return: transformed gender data (DataFrame)
+        """
+
+        pass
+
+    def transform_log(self, log_data):
+        """
+        Preprocessing function for LOG data
+        :param log_data: log data (DataFrame)
+        :return: transformed l0g data (DataFrame)
+        """
+
+        pass
+
+
+
+
