@@ -242,6 +242,31 @@ class Preprocesser:
         #print(new_features1)
         return new_features1
 
+    def transform_language(self, countries):
+        """
+        Preprocessing function for countries language and geographical data
+        :param countries: countries data (DataFrame)
+        :return: transformed countries data (DataFrame)
+        """
+        if isinstance(countries,DataFrame):
+            pass
+        else:
+            raise Exception("X must be a pandas DataFrame")
+
+        #subset variables
+        countries_subset = countries.iloc[: , [0, 5, 6]]
+
+        #pivot operation: Transform country_destination rows into colums
+        countries_pivot = countries_subset.pivot(index = 'destination_language ', columns = 'country_destination', values = 'language_levenshtein_distance')
+        
+        #fill in NaNs with zero
+        countries_pivot.fillna(0)
+
+        #create new row with total language score for each country
+        countries_pivot1 = countries_pivot.append(countries_pivot.sum(numeric_only=True), ignore_index=True)
+        return countries_pivot1
+
+
     def join_data(self,user,session,gender):
         pass
 

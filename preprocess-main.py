@@ -21,6 +21,14 @@ log_data = pd.read_csv('data/sessions.csv', encoding='utf-8')
 log_data.set_index('user_id', inplace = True)
 new_log_features = airbnb_preprocess.transform_log(log_data)
 
+## Clean countries.csv
+
+#Read countries data and create new features from this data set
+countries = pd.read_csv('data/countries.csv', encoding='utf-8')
+
+new_language_features = airbnb_preprocess.transform_language(countries)
+
+
 ### Clean User data (test and train sets)
 
 # Read test, training data
@@ -33,6 +41,13 @@ test.set_index('id',inplace=True)
 
 train_clean = airbnb_preprocess.transform_user(train,bagging=True)
 test_clean = airbnb_preprocess.transform_user(test,bagging=False)
+
+## Need to repeat new_language_features for each user in train and test,
+## which will then be ready to be joined
+
+new_language_features_train = pd.DataFrame(new_language_features.values.repeat(len(train_clean.index), columns = new_language_features.columns)
+
+new_language_features_test = pd.DataFrame(new_language_features.values.repeat(len(test_clean.index), columns = new_language_features.columns)
 
 
 
