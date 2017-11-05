@@ -39,6 +39,7 @@ test = pd.read_csv('data/test_users.csv', encoding='utf-8')
 test.set_index('id',inplace=True)
 
 
+
 train_clean = airbnb_preprocess.transform_user(train,bagging=True)
 test_clean = airbnb_preprocess.transform_user(test,bagging=False)
 
@@ -50,8 +51,14 @@ new_language_features_train = pd.DataFrame(new_language_features.values.repeat(l
 new_language_features_test = pd.DataFrame(new_language_features.values.repeat(len(test_clean.index), columns = new_language_features.columns)
 
 
+train_full_feature = airbnb_preprocess.join_data(user=train_clean,
+                                  session=new_log_features,
+                                  gender=new_gender_features)
 
+test_full_feature = airbnb_preprocess.join_data(user=test_clean,
+                                  session=new_log_features,
+                                  gender=new_gender_features)
 
-
-
+train_full_feature.to_csv('data/train_full_feature.csv')
+test_full_feature.to_csv('data/test_full_feature.csv')
 
