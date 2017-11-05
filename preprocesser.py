@@ -2,7 +2,7 @@ import numpy as np
 from impute import Imputer, SampleBagger
 from pandas import DataFrame
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 class Preprocesser:
 
@@ -26,6 +26,28 @@ class Preprocesser:
 
         return X_out
 
+    def oneHotEncodeCols(self, X, columns_to_encode):
+        # TODO: Finish this! WHat to do with the target variable?
+        one_hot = OneHotEncoder()
+        one_hot_dfs = []
+
+        for col in columns_to_encode:
+            feature_i = X[col].values.reshape(-1,1)
+            tmp_df = DataFrame(one_hot.fit_transform(feature_i).toarray())
+            one_hot_cols = [col + "_" + str(x) for x in one_hot.active_features_]
+            tmp_df.columns = one_hot_cols
+            one_hot_dfs.append(tmp_df)
+
+        X_out = X.drop(columns_to_encode,axis=1)
+        all_data = pd.concat(one_hot_dfs,axis=1)
+        all_data.index = X_out.index
+        # This is not working correctly
+        X_out = pd.merge(X_out,all_data,how='left',left_index=True,right_index=True)
+        return X_out
+
+
+
+
     def transform_user(self,train,bagging=True):
 
         if isinstance(train,DataFrame):
@@ -46,7 +68,10 @@ class Preprocesser:
         user_with_year_age_mask = train['age'] > 1000
         train.loc[user_with_year_age_mask, 'age'] = 2015 - train.loc[user_with_year_age_mask, 'age']
 
-        train.loc[(train['age'] > 100) | (train['age'] < 18), 'age'] = -1
+        # When invalid age was entered (> 100 | < 18), fill with mean, rather than nan
+        mean_age = np.mean(train['age'])
+
+        train.loc[(train['age'] > 100) | (train['age'] < 18), 'age'] = mean_age
 
         # modifying date information
         # again, using code from https://github.com/davidgasquez/kaggle-airbnb/blob/master/notebooks/Preprocessing.ipynb
@@ -115,7 +140,7 @@ class Preprocesser:
         print("Null values before imputation")
         print(null_vals_pct[null_vals_pct > 0])
 
-
+        cols_out = list(train_encoded.columns)
         if bagging:
             fill_na = SampleBagger(impute_missing_vals=True,
                                    ratio_dense_sparce=(5, 1),
@@ -125,19 +150,23 @@ class Preprocesser:
                                    minibatch=True,
                                    minibatch_size=.1)
             train_out = DataFrame(fill_na.genSample(X=train_encoded))
+            cols_out = ['id'] + cols_out
+            train_out.columns = cols_out
+            train_out.set_index(keys=['id'],drop=True,inplace=True)
+
         else:
+            user_idx = train_encoded.index
             fill_na = Imputer(n_neighbors=5,
                                    print=True,
                                    categorical_vars=nonnumeric_cols,
                                    minibatch=True,
                                    minibatch_size=.1)
             train_out = DataFrame(fill_na.impute(train_encoded))
+            train_out.columns = cols_out
+            train_out.index = user_idx
 
-
-        null_vals_pct = train_out.isnull().sum() / float(len(train_out))
-        print("Null values after imputation")
-        print(null_vals_pct)
-
+        # TODO: one-hot encode imputed all categorical vars
+        train_out = self.oneHotEncodeCols(X=train_encoded,columns_to_encode=nonnumeric_cols)
         return train_out
 
 
@@ -243,9 +272,27 @@ class Preprocesser:
         return new_features1
 
     def join_data(self,user,session,gender):
-        pass
 
-        
+        # first join gender data using age_bucket feature
+        # We will create age_bucket from age
+
+        age_bins = ['0-4','5-9','10-14', '15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49',
+                    '50-54', '55-59', '60-64', '65-69', '70-74', '75-79', '80-84', '85-89', '90-94', '95-99','100+']
+        ages = user['age']
+        user_age_bins = pd.cut(ages,bins=range(0,110,5),right=False,labels = age_bins)
+        user['age_bins'] = user_age_bins
+
+        user_join = pd.merge(user,gender,how='left',left_on = 'age_bins',right_index = True)
+        user_join.drop('age_bins',axis=1,inplace=True)
+
+        user_join = pd.merge(user_join,session,how='left',left_index=True,right_index=True)
+        user_join.fillna(value=0,inplace=True)
+
+        return user_join
+
+
+
+
 
 
 
