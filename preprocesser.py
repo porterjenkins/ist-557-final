@@ -6,6 +6,9 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 class Preprocesser:
 
+    def __init__(self,target_var):
+        self.target_var = target_var
+
     def encodeCols(self,X, columns_to_encode):
         """
         Iterates over given columns of DataFrame and converts each to ints. We use a level-encoder, not one hot encoding.
@@ -26,12 +29,15 @@ class Preprocesser:
 
         return X_out
 
-    def oneHotEncodeCols(self, X, columns_to_encode):
+    def oneHotEncodeCols(self, X, columns_to_encode,omit_vars = []):
         # TODO: Finish this! WHat to do with the target variable?
         one_hot = OneHotEncoder()
         one_hot_dfs = []
 
+        columns_to_encode = list(set(columns_to_encode) - set(omit_vars))
+
         for col in columns_to_encode:
+
             feature_i = X[col].values.reshape(-1,1)
             tmp_df = DataFrame(one_hot.fit_transform(feature_i).toarray())
             one_hot_cols = [col + "_" + str(x) for x in one_hot.active_features_]
@@ -48,12 +54,17 @@ class Preprocesser:
 
 
 
-    def transform_user(self,train,bagging=True):
+    def transform_user(self,train,missing_data_strategy=None):
 
         if isinstance(train,DataFrame):
             pass
         else:
             raise Exception("X must be a pandas DataFrame")
+
+        valid_strategies = ['impute','bag_impute',None]
+
+        if missing_data_strategy not in valid_strategies:
+            raise Exception("Invalid value for missing_data_strategy. Must be 'impute','bag_impute' or None")
 
         # Drop field 'date_first_booking', since we are predicting the first booking. We will never have access to this
         # we observing new data
@@ -141,9 +152,9 @@ class Preprocesser:
         print(null_vals_pct[null_vals_pct > 0])
 
         cols_out = list(train_encoded.columns)
-        if bagging:
+        if missing_data_strategy == 'bag_impute':
             fill_na = SampleBagger(impute_missing_vals=True,
-                                   ratio_dense_sparce=(5, 1),
+                                   ratio_dense_sparce=(2, 1),
                                    n_neighbors=5,
                                    print=True,
                                    categorical_vars=nonnumeric_cols,
@@ -154,7 +165,7 @@ class Preprocesser:
             train_out.columns = cols_out
             train_out.set_index(keys=['id'],drop=True,inplace=True)
 
-        else:
+        elif missing_data_strategy == 'impute':
             user_idx = train_encoded.index
             fill_na = Imputer(n_neighbors=5,
                                    print=True,
@@ -164,9 +175,13 @@ class Preprocesser:
             train_out = DataFrame(fill_na.impute(train_encoded))
             train_out.columns = cols_out
             train_out.index = user_idx
+        else:
+            train_out = train_encoded.copy()
 
-        # TODO: one-hot encode imputed all categorical vars
-        train_out = self.oneHotEncodeCols(X=train_encoded,columns_to_encode=nonnumeric_cols)
+        # TODO: There is a bug in our one-hot encoding scheme...
+        train_out = self.oneHotEncodeCols(X=train_out,
+                                          columns_to_encode=nonnumeric_cols,
+                                          omit_vars = [self.target_var])
         return train_out
 
 

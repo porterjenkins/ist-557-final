@@ -2,7 +2,7 @@ import pandas as pd
 from preprocesser import Preprocesser
 
 ### Create proprocessor object
-airbnb_preprocess = Preprocesser()
+airbnb_preprocess = Preprocesser(target_var='country_destination')
 
 ### Clean age_gender_bkts.csv
 
@@ -16,17 +16,17 @@ new_gender_features = airbnb_preprocess.transform_gender(age_gender)
 ### Clean sessions.csv
 
 #Read sessions data and create new features from this data set
-log_data = pd.read_csv('data/sessions.csv', encoding='utf-8')
+#log_data = pd.read_csv('data/sessions.csv', encoding='utf-8')
 #set user_id field to DataFrame index
-log_data.set_index('user_id', inplace = True)
-new_log_features = airbnb_preprocess.transform_log(log_data)
+#log_data.set_index('user_id', inplace = True)
+#new_log_features = airbnb_preprocess.transform_log(log_data)
 
 ## Clean countries.csv
 
 #Read countries data and create new features from this data set
-countries = pd.read_csv('data/countries.csv', encoding='utf-8')
+#countries = pd.read_csv('data/countries.csv', encoding='utf-8')
 
-new_language_features = airbnb_preprocess.transform_language(countries)
+#new_language_features = airbnb_preprocess.transform_language(countries)
 
 
 ### Clean User data (test and train sets)
@@ -40,25 +40,42 @@ test.set_index('id',inplace=True)
 
 
 
-train_clean = airbnb_preprocess.transform_user(train,bagging=True)
-test_clean = airbnb_preprocess.transform_user(test,bagging=False)
+#train_clean = airbnb_preprocess.transform_user(train,missing_data_strategy='bag_impute')
+#test_clean = airbnb_preprocess.transform_user(test,missing_data_strategy='impute')
 
 ## Need to repeat new_language_features for each user in train and test,
 ## which will then be ready to be joined
 
-new_language_features_train = pd.DataFrame(new_language_features.values.repeat(len(train_clean.index), columns = new_language_features.columns)
+#new_language_features_train = pd.DataFrame(new_language_features.values.repeat(len(train_clean.index), columns = new_language_features.columns))
+#new_language_features_test = pd.DataFrame(new_language_features.values.repeat(len(test_clean.index), columns = new_language_features.columns))
 
-new_language_features_test = pd.DataFrame(new_language_features.values.repeat(len(test_clean.index), columns = new_language_features.columns)
+
+#train_full_feature = airbnb_preprocess.join_data(user=train_clean,
+#                                  session=new_log_features,
+#                                  gender=new_gender_features)
+
+#test_full_feature = airbnb_preprocess.join_data(user=test_clean,
+#                                  session=new_log_features,
+#                                  gender=new_gender_features)
+
+#train_full_feature.to_csv('data/train_full_feature.csv')
+#test_full_feature.to_csv('data/test_full_feature.csv')
 
 
-train_full_feature = airbnb_preprocess.join_data(user=train_clean,
-                                  session=new_log_features,
-                                  gender=new_gender_features)
+# Just preprocess user data. Take no action on missing values
+#train_raw = airbnb_preprocess.transform_user(train,missing_data_strategy=None)
+#test_raw = airbnb_preprocess.transform_user(test,missing_data_strategy=None)
 
-test_full_feature = airbnb_preprocess.join_data(user=test_clean,
-                                  session=new_log_features,
-                                  gender=new_gender_features)
+#train_raw.to_csv("data/raw-user-train.csv")
+#test_raw.to_csv('data/raw-user-test.csv')
 
-train_full_feature.to_csv('data/train_full_feature.csv')
-test_full_feature.to_csv('data/test_full_feature.csv')
+
+# User data only. Oversample data with no missing values
+
+train_impute = airbnb_preprocess.transform_user(train,missing_data_strategy='bag_impute')
+test_impute = airbnb_preprocess.transform_user(test,missing_data_strategy='bag_impute')
+
+train_impute.to_csv("data/impute-user-train.csv")
+test_impute.to_csv('data/impute-user-test.csv')
+
 
