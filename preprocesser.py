@@ -31,16 +31,37 @@ class Preprocesser:
 
     def oneHotEncodeCols(self, X, columns_to_encode,omit_vars = []):
         # TODO: Finish this! WHat to do with the target variable?
-        one_hot = OneHotEncoder()
+
+        # Column Mapping:
+        col_val_mapping = {'gender':4,
+                           'signup_method':4,
+                           'language': 25,
+                           'affiliate_channel':8,
+                           'first_affiliate_tracked':8,
+                           'signup_app':4,
+                           'first_device_type':9,
+                           'first_browser': 52,
+                           'affiliate_provider':18
+        }
+
+
         one_hot_dfs = []
 
         columns_to_encode = list(set(columns_to_encode) - set(omit_vars))
 
         for col in columns_to_encode:
+            if col in col_val_mapping.keys():
+                n_vals = col_val_mapping[col]
+            else:
+                n_vals = 'auto'
+            one_hot = OneHotEncoder(n_values=n_vals)
 
             feature_i = X[col].values.reshape(-1,1)
             tmp_df = DataFrame(one_hot.fit_transform(feature_i).toarray())
-            one_hot_cols = [col + "_" + str(x) for x in one_hot.active_features_]
+            if n_vals == 'auto':
+                one_hot_cols = [col + "_" + str(x) for x in one_hot.active_features_]
+            else:
+                one_hot_cols = [col + "_" + str(x) for x in range(n_vals)]
             tmp_df.columns = one_hot_cols
             one_hot_dfs.append(tmp_df)
 
@@ -178,7 +199,7 @@ class Preprocesser:
         else:
             train_out = train_encoded.copy()
 
-        # TODO: There is a bug in our one-hot encoding scheme...
+
         train_out = self.oneHotEncodeCols(X=train_out,
                                           columns_to_encode=nonnumeric_cols,
                                           omit_vars = [self.target_var])

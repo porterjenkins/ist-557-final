@@ -63,19 +63,19 @@ test.set_index('id',inplace=True)
 
 
 # Just preprocess user data. Take no action on missing values
-#train_raw = airbnb_preprocess.transform_user(train,missing_data_strategy=None)
-#test_raw = airbnb_preprocess.transform_user(test,missing_data_strategy=None)
+train_raw = airbnb_preprocess.transform_user(train,missing_data_strategy=None)
+test_raw = airbnb_preprocess.transform_user(test,missing_data_strategy=None)
 
-#train_raw.to_csv("data/raw-user-train.csv")
-#test_raw.to_csv('data/raw-user-test.csv')
+train_raw.to_csv("data/raw-user-train.csv")
+test_raw.to_csv('data/raw-user-test.csv')
 
 
 # User data only. Oversample data with no missing values
 
-train_impute = airbnb_preprocess.transform_user(train,missing_data_strategy='bag_impute')
-test_impute = airbnb_preprocess.transform_user(test,missing_data_strategy='bag_impute')
+#train_impute = airbnb_preprocess.transform_user(train,missing_data_strategy='bag_impute')
+#test_impute = airbnb_preprocess.transform_user(test,missing_data_strategy='impute')
 
-train_impute.to_csv("data/impute-user-train.csv")
-test_impute.to_csv('data/impute-user-test.csv')
+#train_impute.to_csv("data/impute-user-train.csv")
+#test_impute.to_csv('data/impute-user-test.csv')
 
 
