@@ -16,10 +16,10 @@ new_gender_features = airbnb_preprocess.transform_gender(age_gender)
 ### Clean sessions.csv
 
 #Read sessions data and create new features from this data set
-#log_data = pd.read_csv('data/sessions.csv', encoding='utf-8')
+log_data = pd.read_csv('data/sessions.csv', encoding='utf-8')
 #set user_id field to DataFrame index
-#log_data.set_index('user_id', inplace = True)
-#new_log_features = airbnb_preprocess.transform_log(log_data)
+log_data.set_index('user_id', inplace = True)
+new_log_features = airbnb_preprocess.transform_log(log_data)
 
 ## Clean countries.csv
 
@@ -39,9 +39,8 @@ test = pd.read_csv('data/test_users.csv', encoding='utf-8')
 test.set_index('id',inplace=True)
 
 
-
-#train_clean = airbnb_preprocess.transform_user(train,missing_data_strategy='bag_impute')
-#test_clean = airbnb_preprocess.transform_user(test,missing_data_strategy='impute')
+train_clean = airbnb_preprocess.transform_user(train,missing_data_strategy=None)
+test_clean = airbnb_preprocess.transform_user(test,missing_data_strategy=None)
 
 ## Need to repeat new_language_features for each user in train and test,
 ## which will then be ready to be joined
@@ -50,24 +49,24 @@ test.set_index('id',inplace=True)
 #new_language_features_test = pd.DataFrame(new_language_features.values.repeat(len(test_clean.index), columns = new_language_features.columns))
 
 
-#train_full_feature = airbnb_preprocess.join_data(user=train_clean,
-#                                  session=new_log_features,
-#                                  gender=new_gender_features)
+train_full_feature = airbnb_preprocess.join_data(user=train_clean,
+                                    gender = new_gender_features,
+                                    session = new_log_features)
 
-#test_full_feature = airbnb_preprocess.join_data(user=test_clean,
-#                                  session=new_log_features,
-#                                  gender=new_gender_features)
+test_full_feature = airbnb_preprocess.join_data(user=test_clean,
+                                  gender=new_gender_features,
+                                  session=new_log_features)
 
-#train_full_feature.to_csv('data/train_full_feature.csv')
-#test_full_feature.to_csv('data/test_full_feature.csv')
+train_full_feature.to_csv('data/train_with_session_demo.csv')
+test_full_feature.to_csv('data/test_with_session_demo.csv')
 
 
 # Just preprocess user data. Take no action on missing values
-train_raw = airbnb_preprocess.transform_user(train,missing_data_strategy=None)
-test_raw = airbnb_preprocess.transform_user(test,missing_data_strategy=None)
+#train_raw = airbnb_preprocess.transform_user(train,missing_data_strategy=None)
+#test_raw = airbnb_preprocess.transform_user(test,missing_data_strategy=None)
 
-train_raw.to_csv("data/raw-user-train.csv")
-test_raw.to_csv('data/raw-user-test.csv')
+#train_raw.to_csv("data/raw-user-train.csv")
+#test_raw.to_csv('data/raw-user-test.csv')
 
 
 # User data only. Oversample data with no missing values

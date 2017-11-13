@@ -332,22 +332,30 @@ class Preprocesser:
         return countries_pivot1
 
 
-    def join_data(self,user,session,gender):
+    def join_data(self,user,gender=None,session=None):
 
         # first join gender data using age_bucket feature
         # We will create age_bucket from age
 
-        age_bins = ['0-4','5-9','10-14', '15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49',
-                    '50-54', '55-59', '60-64', '65-69', '70-74', '75-79', '80-84', '85-89', '90-94', '95-99','100+']
-        ages = user['age']
-        user_age_bins = pd.cut(ages,bins=range(0,110,5),right=False,labels = age_bins)
-        user['age_bins'] = user_age_bins
 
-        user_join = pd.merge(user,gender,how='left',left_on = 'age_bins',right_index = True)
-        user_join.drop('age_bins',axis=1,inplace=True)
+        if gender is not None:
 
-        user_join = pd.merge(user_join,session,how='left',left_index=True,right_index=True)
-        user_join.fillna(value=0,inplace=True)
+            age_bins = ['0-4', '5-9', '10-14', '15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49',
+                        '50-54', '55-59', '60-64', '65-69', '70-74', '75-79', '80-84', '85-89', '90-94', '95-99', '100+']
+            ages = user['age']
+            user_age_bins = pd.cut(ages, bins=range(0, 110, 5), right=False, labels=age_bins)
+            user['age_bins'] = user_age_bins
+
+            user_join = pd.merge(user, gender, how='left', left_on='age_bins', right_index=True)
+            user_join.drop('age_bins', axis=1, inplace=True)
+
+        if session is not None:
+            user_join = pd.merge(user_join,session,how='left',left_index=True,right_index=True)
+            #user_join.fillna(value=0,inplace=True)
+
+
+
+
 
         return user_join
 
