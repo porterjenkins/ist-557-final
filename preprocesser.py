@@ -284,6 +284,54 @@ class Preprocesser:
         new_features.columns.values[5] = 'total_secs'
         new_features.columns.values[6] = 'avg_secs'
 
+        #summary statistics of seconds elapsed for each user
+        sec_descriptives = sessions.groupby('user_id')[['secs_elapsed']].describe().unstack()
+
+        #merge sec_descriptives with new_features
+        new_features = pandas.concat([new_features, sec_descriptives], axis=1)
+
+        #rename columns 
+        new_features.columns.values[7] = 'secs_elapsed2'
+        new_features.columns.values[8] = 'secs_mean'
+        new_features.columns.values[9] = 'secs_std'
+        new_features.columns.values[10] = 'secs_min'
+        new_features.columns.values[11] = 'secs_25'
+        new_features.columns.values[12] = 'secs_50'
+        new_features.columns.values[13] = 'secs_75'
+        new_features.columns.values[14] = 'secs_max'
+
+        #percentage of time per type of action for each user 
+        action_type_sum = sessions.groupby(['user_id', 'action']).agg({'secs_elapsed': 'sum'}) 
+
+        # Change: groupby action and divide by sum
+        action_pcts = pd.DataFrame(action_type_sum.groupby(level=0).apply(lambda x:
+                                                 100 * x / float(x.sum())) ).reset_index()
+
+        #change action_pcts from long to wide
+        action_type_pcts_wide = action_pcts.pivot(index = 'user_id', columns = 'action', values = 'secs_elapsed')
+
+        #add _action_pct to every column name
+        action_type_pcts_wide.columns = [str(col) + '_action_pct' for col in action_type_pcts_wide.columns]
+
+        #add action_type_pcts_wide to new_features data set
+        new_features = pd.concat([new_features, action_type_pcts_wide], axis=1)
+
+        #percentage of time per type of action_detail for each user 
+        action_detail_sum = sessions.groupby(['user_id', 'action_detail']).agg({'secs_elapsed': 'sum'})
+
+        # Change: groupby action_detail and divide by sum
+        action_detail_pcts = pd.DataFrame(action_detail_sum.groupby(level=0).apply(lambda x:
+                                                 100 * x / float(x.sum())) ).reset_index()
+
+        #change action_detail_pcts from long to wide
+        action_detail_pcts_wide = action_detail_pcts.pivot(index = 'user_id', columns = 'action_detail', values = 'secs_elapsed')
+
+        #add _detail_pct to every column name
+        action_detail_pcts_wide.columns = [str(col) + '_detail_pct' for col in action_detail_pcts_wide.columns]
+
+        #add action_type_pcts_wide to new_features data set
+        new_features = pandas.concat([new_features, action_detail_pcts_wide], axis=1)
+
         #frequency of action by user.
         action_freq = pd.DataFrame({'action_count' : sessions.groupby( ["user_id", "action"] ).size()}).reset_index()
 
@@ -304,7 +352,6 @@ class Preprocesser:
 
         #fill all NAs in new_features with zeros (since all features are frequencies)
         new_features1 = new_features.fillna(0)
-        #print(new_features1)
         return new_features1
 
     def transform_language(self, countries):
