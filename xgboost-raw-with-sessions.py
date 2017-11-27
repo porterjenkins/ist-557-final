@@ -46,4 +46,4 @@ probs = mod.predict(dtest)
 y_hat_xgboost = classify(probs)
 
 submission = getSubmissionFile(user_idx=test_idx,predictions=y_hat_xgboost,k=5,country_map=country_label_df)
-submission.to_csv("output/predictions/xgboost_raw_session_langauge.csv")
+submission.to_csv("output/predictions/xgboost_raw_session_enhanced.csv")

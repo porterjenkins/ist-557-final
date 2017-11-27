@@ -14,6 +14,13 @@ def classify(probs,k=5):
     y_hat = np.flip(probs_k,axis=1)
     return y_hat
 
+def classifyTwoStage(probs_stage_one, probs_stage_two,k=5):
+    all_probs = np.concatenate((probs_stage_two,probs_stage_one),axis=1)
+    probs_sort = np.argsort(all_probs,axis=1)
+    probs_k = probs_sort[:,-k:]
+    y_hat = np.flip(probs_k,axis=1)
+    return y_hat
+
 def getSubmissionFile(user_idx,predictions,k,country_map):
     user_id_list = []
     for user in user_idx:

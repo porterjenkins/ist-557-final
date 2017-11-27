@@ -23,6 +23,7 @@ log_data = pd.read_csv('data/sessions.csv', encoding='utf-8')
 log_data.set_index('user_id', inplace = True)
 new_log_features = airbnb_preprocess.transform_log(log_data)
 
+
 ### Transform language
 
 #Read countries data and create new features from this data set

@@ -285,10 +285,10 @@ class Preprocesser:
         new_features.columns.values[6] = 'avg_secs'
 
         #summary statistics of seconds elapsed for each user
-        sec_descriptives = sessions.groupby('user_id')[['secs_elapsed']].describe().unstack()
+        sec_descriptives = sessions.groupby('user_id')[['secs_elapsed']].describe()
 
         #merge sec_descriptives with new_features
-        new_features = pandas.concat([new_features, sec_descriptives], axis=1)
+        new_features = pd.concat([new_features, sec_descriptives], axis=1)
 
         #rename columns 
         new_features.columns.values[7] = 'secs_elapsed2'
@@ -330,7 +330,7 @@ class Preprocesser:
         action_detail_pcts_wide.columns = [str(col) + '_detail_pct' for col in action_detail_pcts_wide.columns]
 
         #add action_type_pcts_wide to new_features data set
-        new_features = pandas.concat([new_features, action_detail_pcts_wide], axis=1)
+        new_features = pd.concat([new_features, action_detail_pcts_wide], axis=1)
 
         #frequency of action by user.
         action_freq = pd.DataFrame({'action_count' : sessions.groupby( ["user_id", "action"] ).size()}).reset_index()
