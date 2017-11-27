@@ -3,7 +3,7 @@ from pandas import DataFrame
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
+from predictionFunctions import *
 
 ## Inverse Transform Label Encoder
 
@@ -12,18 +12,6 @@ country_labels = dict(zip(range(len(countries)),countries))
 
 country_label_df = DataFrame.from_dict(country_labels,orient='index')
 country_label_df.columns = ['country']
-
-
-def getAccuracy(y_hat,y_true):
-    y_correct = np.where(y_hat == y_true,1,0)
-    accuracy_pct = np.mean(y_correct)
-    return accuracy_pct
-
-def classify(probs):
-    y_hat = np.argmax(probs,axis=1)
-    return y_hat
-
-
 
 ### Imputed Data
 
@@ -57,11 +45,5 @@ probs = mod.predict(dtest)
 y_hat_xgboost = classify(probs)
 
 
-impute_data_out_df = DataFrame(data=y_hat_xgboost,index=test_idx,columns=['country'])
-impute_data_out_df.index.rename('id',inplace=True)
-impute_data_out_df = pd.merge(impute_data_out_df,country_label_df,how='left',left_on='country',right_index=True)
-impute_data_out_df.drop('country_x',axis=1,inplace=True)
-impute_data_out_df.columns = ['country']
-
-
-impute_data_out_df.to_csv("output/predictions/xgboost_session_demo.csv")
+submission = getSubmissionFile(user_idx=test_idx,predictions=y_hat_xgboost,k=5,country_map=country_label_df)
+submission.to_csv("output/predictions/xgboost_session_demo.csv")

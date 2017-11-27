@@ -322,8 +322,8 @@ class Preprocesser:
         countries_subset = countries.iloc[: , [0, 5, 6]]
 
         #pivot operation: Transform country_destination rows into colums
-        countries_pivot = countries_subset.pivot(index = 'destination_language ', columns = 'country_destination', values = 'language_levenshtein_distance')
-        
+        countries_pivot = countries_subset.pivot(index = 'destination_language', columns = 'country_destination', values = 'language_levenshtein_distance')
+
         #fill in NaNs with zero
         countries_pivot.fillna(0)
 
@@ -337,6 +337,7 @@ class Preprocesser:
         # first join gender data using age_bucket feature
         # We will create age_bucket from age
 
+        user_join = pd.merge(user, session, how='left', left_index=True, right_index=True)
 
         if gender is not None:
 
@@ -346,15 +347,8 @@ class Preprocesser:
             user_age_bins = pd.cut(ages, bins=range(0, 110, 5), right=False, labels=age_bins)
             user['age_bins'] = user_age_bins
 
-            user_join = pd.merge(user, gender, how='left', left_on='age_bins', right_index=True)
+            user_join = pd.merge(user_join, gender, how='left', left_on='age_bins', right_index=True)
             user_join.drop('age_bins', axis=1, inplace=True)
-
-        if session is not None:
-            user_join = pd.merge(user_join,session,how='left',left_index=True,right_index=True)
-            #user_join.fillna(value=0,inplace=True)
-
-
-
 
 
         return user_join
