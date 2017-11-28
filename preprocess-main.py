@@ -21,7 +21,7 @@ airbnb_preprocess = Preprocesser(target_var='country_destination')
 log_data = pd.read_csv('data/sessions.csv', encoding='utf-8')
 #set user_id field to DataFrame index
 log_data.set_index('user_id', inplace = True)
-new_log_features = airbnb_preprocess.transform_log(log_data)
+new_log_features = airbnb_preprocess.transform_log(log_data.head(300))
 
 
 ### Transform language
