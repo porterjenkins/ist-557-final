@@ -144,6 +144,28 @@ class Preprocesser:
 
         train.drop(drop_list, axis=1, inplace=True)
 
+        #create dummy codes to indicate type of user language (English, Euro, Asian)
+        train['lang_english'] = np.where(train['language']=='en',1,0)
+        
+        train['lang_euro'] = np.where((train['language']=='fr')|
+                                 (train['language']=='es')|
+                                 (train['language']=='de')|
+                                 (train['language']=='pt')|
+                                 (train['language']=='sv')|
+                                 (train['language']=='nl')|
+                                 (train['language']=='tr')|
+                                 (train['language']=='da')|
+                                 (train['language']=='pl')|
+                                 (train['language']=='cs')|
+                                 (train['language']=='no')|
+                                 (train['language']=='el')|
+                                 (train['language']=='hu')|
+                                 (train['language']=='fi')|
+                                 (train['language']=='is')|
+                                 (train['language']=='ca')|
+                                 (train['language']=='hr'),
+                                 1,0)
+
         # making sure categorical variables are categorical
         train["gender"] = train["gender"].astype('category')
         train["signup_method"] = train["signup_method"].astype('category')
