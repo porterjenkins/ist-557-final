@@ -163,7 +163,15 @@ class Preprocesser:
                                  (train['language']=='fi')|
                                  (train['language']=='is')|
                                  (train['language']=='ca')|
+                                 (train['language']=='ru')|
                                  (train['language']=='hr'),
+                                 1,0)
+
+        train['lang_asia'] = np.where((train['language']=='zh')|
+                                 (train['language']=='ko')|
+                                 (train['language']=='ja')|
+                                 (train['language']=='th')|
+                                 (train['language']=='id'),
                                  1,0)
 
         # making sure categorical variables are categorical
