@@ -13,8 +13,8 @@ country_label_df.columns = ['country']
 
 ### Imputed Data
 
-train_impute = pd.read_csv("data/train_with_session-11-16.csv",index_col=0)
-X_test_impute = pd.read_csv("data/test_with_session-11-16.csv",index_col=0)
+train_impute = pd.read_csv("data/train_with_session_language.csv",index_col=0)
+X_test_impute = pd.read_csv("data/test_with_session_language.csv",index_col=0)
 
 test_idx = X_test_impute.index
 y_train_impute = train_impute['country_destination'].values
@@ -42,4 +42,4 @@ probs = mod.predict(dtest)
 y_hat_xgboost = classify(probs)
 
 submission = getSubmissionFile(user_idx=test_idx,predictions=y_hat_xgboost,k=5,country_map=country_label_df)
-submission.to_csv("output/predictions/xgboost_raw_session_language_tuned.csv")
+submission.to_csv("output/predictions/xgboost_raw_session_language_coded.csv")

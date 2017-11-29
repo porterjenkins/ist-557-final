@@ -1,0 +1,26 @@
+Model Stacking:
+------------------
+
+Three competing models:
+	1) XGboost
+	2) Random Forest
+	3) LASSO with multnomial link function
+	
+1) Create meta_training data, for second layer
+		- All training samples
+		- Ground truth label
+		- Important features (maybe)
+			- Let's start with just fitting model to 15 predictions 
+				- 3 models x 5 predictions each
+		- Placeholders for predictions from 
+2) Create meta_test data in same fashion as meta_training
+	- Same samples as full test sset
+3) Split training data into folds, k = 5
+	- Choose test fold
+	- Use other 4 folds as training folds
+	- For each model, train on 4 training folds, make predictions onto test fold
+	- store prediction in meta-training
+4) Fit each model to full training data, make prediction onto test data set. Store predictions in meta_test
+5) Fit a final (stacking) model to meta_train, using predictions as features
+	- Logistic regression?
+	

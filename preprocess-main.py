@@ -41,8 +41,6 @@ test.set_index('id',inplace=True)
 
 
 # Join language distance data before transforming user data
-#train = pd.merge(train,new_language_features,how='left',on='language')
-#test = pd.merge(test,new_language_features,how='left',on='language')
 
 train = train.reset_index().merge(new_language_features,how='left',on='language').set_index('id')
 test = test.reset_index().merge(new_language_features,how='left',on='language').set_index('id')
@@ -61,8 +59,8 @@ test_full_feature = airbnb_preprocess.join_data(user=test_clean,
                                   gender= None,
                                   session=new_log_features)
 
-train_full_feature.to_csv('data/train_with_session.csv')
-test_full_feature.to_csv('data/test_with_session.csv')
+train_full_feature.to_csv('data/train_with_session_language.csv')
+test_full_feature.to_csv('data/test_with_session_language.csv')
 
 
 # Just preprocess user data. Take no action on missing values
