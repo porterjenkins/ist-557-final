@@ -1,6 +1,11 @@
 from pandas import DataFrame
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import KFold
+from sklearn.linear_model import LogisticRegression
+import sys
+from datetime import datetime
+import xgboost as xgb
 
 
 def getAccuracy(y_hat,y_true):
@@ -122,5 +127,114 @@ def ndcg_score(ground_truth, predictions, k=5):
     return np.mean(scores)
 
 
+def learnStackingLayer(X_train_meta,
+                       y_train,
+                       X_test_meta,
+                       n_folds):
+    """
+    - Train meta-classier (stacked layer)
+    - Predictions from models are used as features
+    - Use 5-fold CV to learn best penalty term
+    - Use L2 penalty. Don't want to induce sparsity, just regularization"""
+
+    model_param_space = range(1,12)
+    meta_penalty_eval = np.zeros((n_folds, len(model_param_space)))
+
+    print "CV to select best lambda for stacked layer..."
+    k_fold = KFold(n_splits=n_folds, shuffle=True, random_state=0703)
+    fold_cnt = 0
+    total_cnt = 0
+    for train_index, test_index in k_fold.split(X_train_meta):
+
+        X_train_meta_cv = X_train_meta[train_index]
+        y_train_meta_cv = y_train[train_index]
+
+        X_test_meta_cv = X_train_meta[test_index]
+        y_test_meta_cv = y_train[test_index]
+
+        lambda_cnt = 0
+        for lam in model_param_space:
+            start_model = datetime.now()
+
+            #model_meta_cv = LogisticRegression(penalty='l2',
+            #                                   C=lam,
+            #                                   fit_intercept=True,
+            #                                   multi_class='multinomial',
+            #                                   solver='sag'
+            #                                   )
+            #model_meta_cv.fit(X=X_train_meta_cv, y=y_train_meta_cv)
+            #meta_probs_cv = model_meta_cv.predict_proba(X=X_test_meta_cv)
+
+            #beta = model_meta_cv.coef_
+            #np.savetxt(fname='output/meta-logit-beta.txt',X=beta)
+
+            xgb_param_map = {'num_class': 12,
+                         'max_depth': 4,
+                         'eta': .1,
+                         'silent': 1,
+                         'objective': 'multi:softprob',
+                         'booster': 'gbtree',
+                         'gamma': 2.0,
+                         'min_child_weight': lam,
+                         'subsample': .5
+                         }
+            num_round = 4
+
+            dtrain = xgb.DMatrix(X_train_meta_cv, label=y_train_meta_cv)
+            dtest = xgb.DMatrix(X_test_meta_cv)
+
+            mod_meta_cv = xgb.train(xgb_param_map, dtrain, num_round)
+            meta_probs_cv = mod_meta_cv.predict(dtest)
+
+            model_time = datetime.now() - start_model
+
+            eval_ndcg = ndcg_score(ground_truth=y_test_meta_cv, predictions=meta_probs_cv)
+            meta_penalty_eval[fold_cnt, lambda_cnt] = eval_ndcg
+
+            lambda_cnt += 1
+            total_cnt += 1
+
+            # Print progress to screen
+            progress = np.round(total_cnt / float(n_folds * len(model_param_space)),4)
+            print "progress: " + str(progress) + " time: " + str(model_time)
+
+        fold_cnt += 1
+
+    mean_eval_ndcg_meta = np.mean(meta_penalty_eval, axis=1)
+    best_meta_lambda_idx = np.argmax(mean_eval_ndcg_meta)
+    best_meta_lambda = model_param_space[best_meta_lambda_idx]
+
+    print "Best lambda: " + str(best_meta_lambda)
+
+    #model_meta = LogisticRegression(penalty='l2',
+    #                                C=best_meta_lambda,
+    #                                fit_intercept=True,
+    #                                multi_class='multinomial',
+    #                                solver='sag'
+    #                                )
+    #model_meta.fit(X=X_train_meta, y=y_train)
+    #meta_probs = model_meta.predict_proba(X=X_test_meta)
+
+    xgb_param_map = {'num_class': 12,
+                     'max_depth': 4,
+                     'eta': .1,
+                     'silent': 1,
+                     'objective': 'multi:softprob',
+                     'booster': 'gbtree',
+                     'gamma': 2.0,
+                     'min_child_weight': best_meta_lambda,
+                     'subsample': .5
+                     }
+    num_round = 4
+
+    dtrain = xgb.DMatrix(X_train_meta, label=y_train)
+    dtest = xgb.DMatrix(X_test_meta)
+
+    model_meta = xgb.train(xgb_param_map, dtrain, num_round)
+    meta_probs = model_meta.predict(dtest)
+
+    y_hat_meta = classify(probs=meta_probs)
+
+    return y_hat_meta
 
 

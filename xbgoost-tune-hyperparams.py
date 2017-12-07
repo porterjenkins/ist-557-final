@@ -20,7 +20,7 @@ X_test = pd.read_csv("data/test_with_session-11-16.csv",index_col=0)
 
 # Reduce size of training data:
 
-train = train.sample(frac=.25)
+train = train.sample(n=5000)
 
 test_idx = X_test.index
 
@@ -38,7 +38,7 @@ k_fold = KFold(n_splits=n_folds,shuffle=True,random_state=0703)
 param_list = ['eta','gamma','max_depth','min_child_weight','num_round']
 param_hypercube = {
     'eta': np.array([.1]),
-    'gamma':np.array([1.0,1.5,2.5,3.0,3.5]),
+    'gamma':np.array([1.0,2.5,3.0,3.5,4.0]),
     'max_depth': np.array([4,5,6,7]),
     'min_child_weight': np.array([8,9,10,12,15,20]),
     'num_round': np.array([4,5,6,7])
@@ -139,8 +139,6 @@ max_ndcg = np.amax(k_fold_ndcg)
 argmax_ndcg = np.where(k_fold_ndcg == max_ndcg)
 
 
-
-
 best_params_idx = dict(zip(param_list,[x[0] for x in argmax_ndcg]))
 
 f = open('output/xgboost-tune.txt','w')
@@ -150,13 +148,4 @@ for key in best_params_idx.keys():
     #print key, param_hypercube[key][best_params_idx[key]]
     f.write(key + ": " + str(param_hypercube[key][best_params_idx[key]]))
     f.write('\n')
-
-
-
-
-
-
-
-
-
 

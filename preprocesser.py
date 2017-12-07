@@ -144,9 +144,8 @@ class Preprocesser:
 
         train.drop(drop_list, axis=1, inplace=True)
 
-        #create dummy codes to indicate type of user language (English, Euro, Asian)
         train['lang_english'] = np.where(train['language']=='en',1,0)
-        
+
         train['lang_euro'] = np.where((train['language']=='fr')|
                                  (train['language']=='es')|
                                  (train['language']=='de')|
@@ -334,6 +333,7 @@ class Preprocesser:
 
         #fill all NAs in new_features with zeros (since all features are frequencies)
         new_features1 = new_features.fillna(0)
+        #print(new_features1)
         return new_features1
 
     def transform_language(self, countries):
@@ -367,6 +367,13 @@ class Preprocesser:
         # We will create age_bucket from age
 
         user_join = pd.merge(user, session, how='left', left_index=True, right_index=True)
+        session_cols = list(session.columns)
+
+        #for col in session_cols:
+        #    user_join[col] = user_join[col].fillna(0)
+
+
+        user_join.fillna(0,inplace=True)
 
         if gender is not None:
 

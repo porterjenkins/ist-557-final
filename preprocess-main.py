@@ -21,8 +21,7 @@ airbnb_preprocess = Preprocesser(target_var='country_destination')
 log_data = pd.read_csv('data/sessions.csv', encoding='utf-8')
 #set user_id field to DataFrame index
 log_data.set_index('user_id', inplace = True)
-new_log_features = airbnb_preprocess.transform_log(log_data.head(300))
-
+new_log_features = airbnb_preprocess.transform_log(log_data)
 
 ### Transform language
 
@@ -41,9 +40,11 @@ test.set_index('id',inplace=True)
 
 
 # Join language distance data before transforming user data
+#train = pd.merge(train,new_language_features,how='left',on='language')
+#test = pd.merge(test,new_language_features,how='left',on='language')
 
-train = train.reset_index().merge(new_language_features,how='left',on='language').set_index('id')
-test = test.reset_index().merge(new_language_features,how='left',on='language').set_index('id')
+#train = train.reset_index().merge(new_language_features,how='left',on='language').set_index('id')
+#test = test.reset_index().merge(new_language_features,how='left',on='language').set_index('id')
 
 
 
@@ -59,9 +60,10 @@ test_full_feature = airbnb_preprocess.join_data(user=test_clean,
                                   gender= None,
                                   session=new_log_features)
 
-train_full_feature.to_csv('data/train_with_session_language.csv')
-test_full_feature.to_csv('data/test_with_session_language.csv')
+train_full_feature.to_csv('data/train_with_session_language_fill_all_nan.csv')
+test_full_feature.to_csv('data/test_with_session_language_fill_all_nan.csv')
 
+print(train_full_feature.shape)
 
 # Just preprocess user data. Take no action on missing values
 #train_raw = airbnb_preprocess.transform_user(train,missing_data_strategy=None)
