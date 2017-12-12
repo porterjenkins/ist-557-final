@@ -1,3 +1,5 @@
+## Note: This is a file Python 3.x file
+
 import numpy as np
 from impute import Imputer, SampleBagger
 from pandas import DataFrame
@@ -5,6 +7,10 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 class Preprocesser:
+    """
+    Preprocesser class contains all functions for cleaning, shaping and imputing training/test data
+
+    """
 
     def __init__(self,target_var):
         self.target_var = target_var

@@ -1,3 +1,6 @@
+# Note: This is a python 2.7
+# This file contains functions to assist in constructing model output and submission files
+
 from pandas import DataFrame
 import pandas as pd
 import numpy as np

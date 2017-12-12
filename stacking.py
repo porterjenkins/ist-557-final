@@ -1,3 +1,6 @@
+# Note: This is a Python 2.7 file.
+# This script trains the upper-level xgboost model for our stacking model, then produces output on the test data
+
 import numpy as np
 from predictionFunctions import *
 
@@ -27,10 +30,6 @@ X_train_meta = np.concatenate((X_train_meta,X_train_full),axis=1)
 X_test_meta = np.concatenate((X_test_meta,X_test_full),axis=1)
 
 
-#y_hat_meta = learnStackingLayer(X_train_meta=X_train_meta,
-#                                y_train=y_train,
-#                                X_test_meta=X_test_meta,
-#                                n_folds=5)
 n_estimators = 1000
 param_map = {'num_class': 12,
              'max_depth': 4,

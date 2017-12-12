@@ -4,6 +4,7 @@ import xgboost as xgb
 from sklearn.model_selection import train_test_split
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
+from predictionFunctions import *
 
 ## Inverse Transform Label Encoder
 
@@ -13,31 +14,28 @@ country_labels = dict(zip(range(len(countries)),countries))
 country_label_df = DataFrame.from_dict(country_labels,orient='index')
 country_label_df.columns = ['country']
 
-### Imputed Data
+### Raw data
 
-train_impute = pd.read_csv("data/rawuser-train.csv",index_col=0)
-X_test_impute = pd.read_csv("data/impute-user-test.csv",index_col=0)
+train = pd.read_csv("data/raw-user-train.csv",index_col=0)
+train.dropna(inplace=True)
+X_test = pd.read_csv("data/raw-user-test.csv",index_col=0)
+X_test.dropna(inplace=True)
 
 
-test_idx = X_test_impute.index
-y_train_impute = train_impute['country_destination'].values
-X_train_impute = train_impute.drop(labels='country_destination',axis=1).values
+test_idx = X_test.index
+y_train = train['country_destination'].values
+X_train = train.drop(labels='country_destination',axis=1).values
 
 
 rf = RandomForestClassifier(n_estimators=100)
-rf.fit(X=X_train_impute,y=y_train_impute)
+rf.fit(X=X_train,y=y_train)
 
-rf_y_hat = rf.predict(X=X_test_impute)
+probs = rf.predict_proba(X=X_test)
+y_hat_rf = classify(probs)
 
+submission = getSubmissionFile(user_idx=test_idx,predictions=y_hat_rf,k=5,country_map=country_label_df)
+submission.to_csv("output/predictions/rf_raw_data_drop_na.csv")
 
-impute_data_out_df = DataFrame(data=rf_y_hat,index=test_idx,columns=['country'])
-impute_data_out_df.index.rename('id',inplace=True)
-impute_data_out_df = pd.merge(impute_data_out_df,country_label_df,how='left',left_on='country',right_index=True)
-impute_data_out_df.drop('country_x',axis=1,inplace=True)
-impute_data_out_df.columns = ['country']
-
-
-impute_data_out_df.to_csv("output/predictions/rf_impute_data.csv")
 
 
 

@@ -1,3 +1,6 @@
+# Note: This is a Python 2.7 file
+# This file learns meta-classifiers and constructs meta-data set filled with top 5 predicted destinations for each model
+
 import pandas as pd
 from pandas import DataFrame
 import numpy as np
@@ -24,7 +27,7 @@ param_map = {'num_class': 12,
              }
 num_round = 4
 
-### Imputed Data
+### Read in data
 
 train = pd.read_csv("data/train_with_session_language_fill_all_nan.csv",index_col=0)
 X_test = pd.read_csv("data/test_with_session_language_fill_all_nan.csv",index_col=0)
